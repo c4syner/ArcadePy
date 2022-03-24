@@ -1,40 +1,146 @@
-from ast import Return
-import random
-import os
-import subprocess
+import curses
+import time
 
-class Minesweeper:
-    def __init__(self) -> None:
-        self.LENGTH = 10
-        self.DROP_RATE = .95
+# Initialize the screen
+stdscr = curses.initscr()
 
-        self.gameBoard = self._generateGameBoard()
-        self.workingGameBoard = self._generateEmptyGameBoard()
-        self.charMap = {
-            0: " ",
-            1: "X",
-            2: "⚑",
-            3: "█"
-        }
-    
-    def _clear(self):
-        os.system("cls")
+# Start color
+curses.start_color()
 
-    def _generateCell(self):
-        return 1 if random.random() > self.DROP_RATE else 0
-    
-    def _generateGameBoard(self):
-        return [[self._generateCell() for a in range(self.LENGTH)] for x in range(self.LENGTH)]
-    
-    def _generateEmptyGameBoard(self):
-        return [[0 for a in range(self.LENGTH)] for x in range(self.LENGTH)]
+# We need to initialize color pairs (FG, BG) before we use them
 
-    def _render(self):
-        self._clear()
-        for i in range(len(self.gameBoard)):
-            for j in range(len(self.gameBoard[0])):
-                print(self.charMap[self.gameBoard[i][j]], end="")
-            print()
+# You can also use curses.init_color(number, r, g, b) to make your own colors
 
-    def beginGame(self):
-        self._render()
+# Default color
+curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLACK)
+
+# Highlight color
+curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
+
+# Coords are in Y, X order instead of X, Y.
+
+def clear():
+	stdscr.clear()
+
+# Original print function isn't that useful anymore
+def print(str):
+	stdscr.addstr(str + "\n")
+
+# Same as above but supports color and doesn't add a trailing newline
+def write(str, *color):
+	stdscr.addstr(str, curses.color_pair(color[0] if len(color) > 0 else 1))
+
+# Gets a character from input
+getch = stdscr.getkey
+
+# Overwriting input to work with curses
+def input(prompt):
+	write(prompt or "")
+
+	return stdscr.getstr().decode()
+
+# Refresh must be called to refresh the screen
+refresh = stdscr.refresh
+
+clear()
+
+# This prevents the program from having to wait for enter to be pressed
+curses.cbreak()
+
+print("Curses Text Adventure")
+
+# Refresh must be called to refresh the screen
+refresh()
+
+time.sleep(0.1)
+
+write("There are ")
+write("two", 2)
+write(" paths, which way should you go? ")
+write("left", 2)
+write(" or ")
+write("right\n", 2)
+
+refresh()
+
+choice = input("> ")
+
+print("You chose " + choice)
+
+getch()
+
+refresh()
+
+clear()
+
+map = []
+
+for x in range(10):
+	map.append([])
+
+	for y in range(10):
+		map[x] = ["0"] * 10
+
+map[5][5] = "1"
+
+plrx = 5
+plry = 5
+
+mapx = 1
+mapy = 2
+
+def render():
+	clear()
+
+	print(" Minigame Prototype:")
+
+	for x in range(10):
+		for y in range(10):
+			# Add a character to position
+			stdscr.addch(mapy + y, mapx + x, map[x][y], curses.color_pair(2 if map[x][y] == "1" else 1))
+
+	refresh()
+
+render()
+
+# This prevents typed characters from being echoed back to the output
+curses.noecho()
+
+
+
+# Movement logic
+while True:
+	render()
+	time.sleep(0.05)
+	cmd = getch()
+
+	if cmd == "q":
+		break
+
+	if cmd == "w":
+		map[plrx][plry - 1] = "1"
+		map[plrx][plry] = "0"
+		plry -= 1
+
+	if cmd == "s":
+		map[plrx][plry + 1] = "1"
+		map[plrx][plry] = "0"
+		plry += 1
+
+	if cmd == "a":
+		map[plrx - 1][plry] = "1"
+		map[plrx][plry] = "0"
+		plrx -= 1
+
+	if cmd == "d":
+		map[plrx + 1][plry] = "1"
+		map[plrx][plry] = "0"
+		plrx += 1
+
+clear()
+refresh()
+
+# Reverse changes and return terminal to normal
+curses.nocbreak()
+curses.echo()
+curses.endwin()
